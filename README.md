@@ -2,7 +2,7 @@
 
  
 <p align='center'>
-    <img src="https://2024 전시회.vercel.app/api?type=waving&color=auto&height=300&section=header&text=capsule%20render&fontSize=90&animation=fadeIn&fontAlignY=38&desc=제주대학교%20소프트웨어학부%20주관&descAlignY=51&descAlign=62"/>
+    <img src="https://2024 전시회.vercel.app/api?type=waving&color=auto&height=300&section=header&text=capsule%20render&fontSize=90&animation=fadeIn&fontAlignY=38&desc=제주대학교%20소프트웨어학부%20주관%20or%20any%20Repo%20like%20me!&descAlignY=51&descAlign=62"/>
 </p>
 
 <p align='center'>
