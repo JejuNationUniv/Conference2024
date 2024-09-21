@@ -1,7 +1,7 @@
 # 2024 전시회 프로젝트
 
 <p align='center'>
-    <img src="https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=2024%20전시회&fontSize=90&animation=fadeIn&fontAlignY=38&desc=제주대학교%20소프트웨어학부&descAlignY=51&descAlign=62"/>
+    <img src="https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=2024%20ShowCase&fontSize=90&animation=fadeIn&fontAlignY=38&desc=제주대학교%20소프트웨어학부&descAlignY=51&descAlign=62"/>
 </p>
 
 <p align='center'>
