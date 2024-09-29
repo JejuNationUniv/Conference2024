@@ -1,4 +1,17 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
 function App() {
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/api/main/')
+      .then(response => {
+        setMessage(response.data.message);
+      })
+      .catch(error => console.error('Error:', error));
+  }, []);
+
   return (
     <div className="flex min-h-screen justify-center bg-[#E7ECF2]">
       <div className="relative flex w-[500px] justify-center bg-white lg:m-5 lg:w-screen lg:rounded-2xl">
@@ -22,6 +35,10 @@ function App() {
             <button className="h-[56px] w-[392px] rounded-2xl bg-black font-Pretendard text-[20px] font-[700] text-white">
               발음 테스트 시작하기
             </button>
+          </div>
+          {/* API 응답 메시지 표시 */}
+          <div className="mt-4 text-center">
+            <p>{message}</p>
           </div>
         </div>
       </div>
