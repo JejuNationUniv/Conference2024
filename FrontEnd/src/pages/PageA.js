@@ -4,6 +4,12 @@ import { useNavigate } from "react-router-dom";
 const PageA = () => {
   const navigate = useNavigate();
 
+  const Title = ({ children, className }) => (
+    <div className={`font-Pretendard text-[40px] font-[700] ${className}`}>
+      {children}
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen justify-center bg-[#E7ECF2]">
       <div className="relative flex w-[500px] justify-center bg-white lg:m-5 lg:w-screen lg:rounded-2xl">
@@ -17,12 +23,12 @@ const PageA = () => {
           <div className="mt-[226px] font-Pretendard text-[30px] font-[300]">
             AI 발음 교정기
           </div>
-          <div className="mt-[10px] font-Pretendard text-[40px] font-[700] lg:hidden">
+          <Title className="mt-[10px] lg:hidden">
             AI Pronunciation
-          </div>
-          <div className="font-Pretendard text-[40px] font-[700] lg:hidden">
+          </Title>
+          <Title className="lg:hidden">
             Assistant
-          </div>
+          </Title>
           <div className="hidden lg:mt-[10px] lg:block lg:font-Pretendard lg:text-[40px] lg:font-[700]">
             AI Pronunciation Assistant
           </div>
