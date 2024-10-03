@@ -2,18 +2,18 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const Title = ({ children, className }) => (
-  <div className={`font-Pretendard text-[40px] font-[700] ${className}`}>
-    {children}
-  </div>
-);
-
 const PageA = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const Title = ({ children, className }) => (
+  <div className={`font-Pretendard text-[40px] font-[700] ${className}`}>
+    {children}
+  </div>
+);
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -69,7 +69,7 @@ const PageA = () => {
           <div className="absolute bottom-[87px] mx-14">
             <button
               className="h-[56px] w-[392px] rounded-2xl bg-black font-Pretendard text-[20px] font-[700] text-white"
-              onClick={() => navigate("/pageb")}
+              onClick={() => navigate("/pageB")}
             >
               발음 테스트 시작하기
             </button>
