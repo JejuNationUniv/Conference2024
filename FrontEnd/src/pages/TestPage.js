@@ -1,140 +1,118 @@
-// FrontEnd/src/pages/TestPage.js
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-// 이미지 파일이 없을 경우, 아래 대체 버튼을 사용하세요
-// import miceButton from "../imgs/miceButton.png"; // 말하기 버튼 이미지
-// import stopButton from "../imgs/stopButton.png"; // 중지 버튼 이미지
 
 const TestPage = () => {
   const navigate = useNavigate();
-  const [sentence] = useState("낭만적인 감정에 빠져들었다."); // 더미 문장
-  const [userPronunciation, setUserPronunciation] = useState("");
-  const [highlightedPronunciation, setHighlightedPronunciation] = useState([]);
-  const [isRecording, setIsRecording] = useState(false);
-  const [error, setError] = useState(null);
-  const [isManuallyStopped, setIsManuallyStopped] = useState(false); // 수동 중지 상태
 
-  const recognitionRef = useRef(null);
+  const [stream, setStream] = useState();
+  const [media, setMedia] = useState();
+  const [onRec, setOnRec] = useState(true);
+  const [source, setSource] = useState();
+  const [analyser, setAnalyser] = useState();
+  const [audioUrl, setAudioUrl] = useState();
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0); // 현재 문장 인덱스
+  const chunks = []; // 오디오 청크 데이터를 저장할 배열
+  const sentences = [
+    "가나다라",
+    "마바사아",
+    "자차카타파하",
+    "모든 문장녹음을 완료하였습니다.",
+  ]; // 테스트용 문장
 
-  useEffect(() => {
-    // Web Speech API 설정
-    if ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+  const buttonText =
+    currentSentenceIndex >= 3 ? "결과 확인" : "저장 후 다음 문장";
+  const progressText =
+    currentSentenceIndex >= 3 ? "3" : `${currentSentenceIndex + 1}`;
 
-      recognition.continuous = true; // 계속 인식하도록 설정
-      recognition.interimResults = false; // 실시간 결과 비활성화
-      recognition.lang = "ko-KR";
-
-      recognition.onstart = () => {
-        console.log("Speech recognition started");
-        setIsRecording(true);
-        setError(null);
-      };
-
-      recognition.onend = () => {
-        console.log("Speech recognition ended");
-        setIsRecording(false);
-        if (isManuallyStopped && userPronunciation.trim() !== "") {
-          console.log("Manually stopped. Comparing sentences.");
-          compareSentences(sentence, userPronunciation);
-        }
-        setIsManuallyStopped(false); // 상태 초기화
-      };
-
-      recognition.onresult = (event) => {
-        let final = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            final += transcript;
-          }
-        }
-
-        if (final) {
-          console.log("Final transcript:", final.trim());
-          setUserPronunciation(final.trim());
-        }
-      };
-
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setError("음성 인식 중 오류가 발생했습니다.");
-        setIsRecording(false);
-      };
-
-      recognitionRef.current = recognition;
-    } else {
-      console.log("Speech recognition not supported");
-      setError("이 브라우저는 음성 인식을 지원하지 않습니다.");
-    }
-
-    // 의존성 배열을 빈 배열로 설정하여 컴포넌트 마운트 시 한 번만 실행
-  }, []); // 빈 배열
-
-  const toggleRecording = useCallback(() => {
-    if (recognitionRef.current) {
-      if (isRecording) {
-        // 수동 중지 상태 설정
-        console.log("Stopping speech recognition manually");
-        setIsManuallyStopped(true);
-        recognitionRef.current.stop();
-      } else {
-        console.log("Starting speech recognition");
-        setUserPronunciation("");
-        setHighlightedPronunciation([]);
-        setError(null);
-        setIsManuallyStopped(false);
-        recognitionRef.current.start();
+  function handleClickNext() {
+    setCurrentSentenceIndex((prevIndex) => {
+      const newIndex = prevIndex + 1;
+      if (newIndex >= 4) {
+        return 0;
       }
-    } else {
-      console.error("Speech recognition is not initialized");
-      setError("음성 인식이 초기화되지 않았습니다.");
-    }
-  }, [isRecording]);
+      return newIndex;
+    });
+  }
 
-  const resetPronunciation = () => {
-    console.log("Resetting pronunciation");
-    setUserPronunciation("");
-    setHighlightedPronunciation([]);
-    setError(null);
+  const onRecAudio = () => {
+    // 음원정보를 담은 노드를 생성하거나 음원을 실행또는 디코딩 시키는 일을 한다
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // 자바스크립트를 통해 음원의 진행상태에 직접접근에 사용된다.
+    const analyser = audioCtx.createScriptProcessor(0, 1, 1);
+    setAnalyser(analyser);
+
+    function makeSound(stream) {
+      // 내 컴퓨터의 마이크나 다른 소스를 통해 발생한 오디오 스트림의 정보를 보여준다.
+      const source = audioCtx.createMediaStreamSource(stream);
+      setSource(source);
+
+      // AudioBufferSourceNode 연결
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    // 마이크 사용 권한 획득 후 녹음 시작
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        const mediaRecorder = new MediaRecorder(stream);
+
+        // dataavailable 이벤트 핸들러 등록
+        mediaRecorder.addEventListener("dataavailable", (e) => {
+          chunks.push(e.data); // 청크 데이터를 배열에 추가
+        });
+
+        mediaRecorder.start();
+        setStream(stream);
+        setMedia(mediaRecorder);
+        makeSound(stream);
+        // 음성 녹음이 시작됐을 때 onRec state값을 false로 변경
+        analyser.onaudioprocess = function (e) {
+          setOnRec(false);
+        };
+      })
+      .catch((error) => {
+        // 마이크 사용 권한을 받지 못했을 때 처리
+        alert("마이크 사용 권한을 허용해야 녹음을 진행할 수 있습니다.");
+      });
   };
 
-  const compareSentences = (original, user) => {
-    console.log(
-      `Comparing sentences:\nOriginal: "${original}"\nUser: "${user}"`,
-    );
-    const originalWords = original.split(" ");
-    const userWords = user.split(" ");
-    const maxLength = Math.max(originalWords.length, userWords.length);
-    const highlighted = [];
+  const offRecAudio = () => {
+    // dataavailable 이벤트로 Blob 데이터에 대한 응답을 받을 수 있음
+    media.ondataavailable = function (e) {
+      chunks.push(e.data);
+      setAudioUrl(e.data);
+      setOnRec(true);
+    };
 
-    for (let i = 0; i < maxLength; i++) {
-      const originalWord = originalWords[i] || "";
-      const userWord = userWords[i] || "";
-      const isMatch = originalWord.toLowerCase() === userWord.toLowerCase();
-      highlighted.push({ word: userWord, correct: isMatch });
-      console.log(
-        `Word ${i + 1}: Original="${originalWord}", User="${userWord}", Correct=${isMatch}`,
-      );
-    }
+    // 모든 트랙에서 stop()을 호출해 오디오 스트림을 정지
+    stream.getAudioTracks().forEach(function (track) {
+      track.stop();
+    });
 
-    setHighlightedPronunciation(highlighted);
+    // 미디어 캡처 중지
+    media.stop();
+
+    // 메서드가 호출 된 노드 연결 해제
+    analyser.disconnect();
+    source.disconnect();
   };
 
-  // 모든 단어가 일치하는지 확인
-  const allMatch =
-    highlightedPronunciation.length > 0 &&
-    highlightedPronunciation.every((item) => item.correct);
-
-  useEffect(() => {
-    if (highlightedPronunciation.length > 0) {
-      console.log("Highlighted Pronunciation:", highlightedPronunciation);
-      console.log("All words match:", allMatch);
+  // 녹음 다시 듣기 기능
+  // 다시 듣기 버튼을 누르면 호출되며 자신이 녹음한 소리를 들을 수 있음
+  const onSubmitAudioFile = useCallback(() => {
+    if (audioUrl) {
+      const audio = new Audio(URL.createObjectURL(audioUrl));
+      audio.play();
     }
-  }, [highlightedPronunciation, allMatch]);
+  }, [audioUrl]);
+
+  // 결과 확인 버튼 클릭 시 동작
+  const handleResultCheck = () => {
+    console.log("결과 확인 페이지로 이동");
+    navigate("/result"); // 실제 결과 페이지 경로로 수정하세요
+  };
 
   return (
     <div className="flex min-h-screen justify-center bg-[#E7ECF2] font-Pretendard">
@@ -146,24 +124,23 @@ const TestPage = () => {
           </div>
 
           {/* 메인 영역 */}
-          <div className="mt-[48px] grid w-[408px] grid-cols-1 gap-4 rounded-2xl bg-[#F2F2F2] shadow-lg lg:w-[888px] lg:justify-center">
-            1/10
+          <div className="mt-[100px] font-Pretendard text-[25px] font-[300]">
+            {progressText + "/" + (sentences.length - 1)}
           </div>
 
           {/* 문장 제시 영역 */}
-          <div className="mt-[23px] flex w-[408px] rounded-2xl bg-[#F2F2F2] shadow-lg lg:w-[888px] lg:justify-center">
-            <p className="m-5 flex items-center justify-center text-wrap text-[20px] font-[500] text-black">
-              {sentence}
+          <div className="mt-[23px] flex w-[408px] items-center justify-center rounded-2xl bg-[#F2F2F2] p-5 shadow-lg lg:w-[888px]">
+            <p className="break-words text-center text-[20px] font-[500] text-black">
+              {sentences[currentSentenceIndex]}
             </p>
           </div>
 
           {/* 발음 표시 영역 */}
           <div className="mt-[48px] grid w-[408px] grid-cols-1 gap-4 rounded-2xl bg-[#F2F2F2] shadow-lg lg:w-[888px] lg:justify-center">
             {/* 사용자 발음 표시 영역 */}
-            <div className="flex flex-col items-center justify-center text-wrap text-[20px] font-[500] text-black">
-              {/* 최종 발화 내용 */}
+            <div className="flex items-center justify-center text-wrap text-[20px] font-[500] text-black">
               <p className="mx-5 mt-5 flex items-center justify-center text-wrap text-[20px] font-[500] text-black">
-                {userPronunciation || "여기에 사용자 발음이 표시됩니다."}
+                여기에 사용자 발음이 표시됩니다.
               </p>
             </div>
             {/* 구분선 */}
@@ -171,68 +148,27 @@ const TestPage = () => {
             {/* 발음 피드백 영역 */}
             <div className="flex items-center justify-center text-wrap text-[20px] font-[500] text-black">
               <p className="mx-5 mb-5 flex items-center justify-center text-wrap text-[20px] font-[500] text-black">
-                {highlightedPronunciation.length > 0 ? (
-                  allMatch ? (
-                    <span style={{ color: "green" }}>{userPronunciation}</span>
-                  ) : (
-                    highlightedPronunciation.map((item, index) => (
-                      <span
-                        key={index}
-                        style={{
-                          color: item.correct ? "green" : "red",
-                          marginRight: "4px",
-                        }}
-                      >
-                        {item.word}
-                      </span>
-                    ))
-                  )
-                ) : (
-                  "여기에 수정된 발음이 표시됩니다."
-                )}
+                여기에 수정된 발음이 표시됩니다.
               </p>
             </div>
           </div>
 
           {/* 하단 영역 (버튼) */}
-          <div className="absolute bottom-[87px] mx-14 grid grid-cols-2 gap-[97px]">
-            <button
-              onClick={toggleRecording}
-              className="flex flex-col items-center"
-            >
-              {/* 이미지가 없을 경우 아래 대체 버튼 사용 */}
-              {/* <img
-                src={isRecording ? stopButton : miceButton}
-                alt={isRecording ? "Stop Button" : "Mice Button"}
-                className="h-[60px] w-[60px]"
-              /> */}
-              <div
-                className="mb-2 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-gray-300"
-                // 이미지 대신 텍스트나 아이콘 사용
-              >
-                {isRecording ? "■" : "🎤"}
-              </div>
+          <div className="absolute bottom-[87px] mx-14 flex space-x-24">
+            <button onClick={onRec ? onRecAudio : offRecAudio}>
               <p className="text-[20px] font-[500]">
-                {isRecording ? "중지" : "말하기"}
+                {onRec ? "녹음 시작" : "녹음 중지"}
               </p>
             </button>
+            <button onClick={onSubmitAudioFile}>
+              <p className="text-[20px] font-[500]">내 발음 다시 듣기</p>
+            </button>
             <button
-              onClick={resetPronunciation}
-              className="flex flex-col items-center"
+              onClick={
+                currentSentenceIndex >= 3 ? handleResultCheck : handleClickNext
+              }
             >
-              {/* 이미지가 없을 경우 아래 대체 버튼 사용 */}
-              {/* <img
-                src={stopButton}
-                alt="Reset Button"
-                className="h-[60px] w-[60px]"
-              /> */}
-              <div
-                className="mb-2 flex h-[60px] w-[60px] items-center justify-center rounded-full bg-gray-300"
-                // 이미지 대신 텍스트나 아이콘 사용
-              >
-                🔄
-              </div>
-              <p className="text-[20px] font-[500]">초기화</p>
+              <p className="text-[20px] font-[500]">{buttonText}</p>
             </button>
           </div>
         </div>
@@ -243,12 +179,6 @@ const TestPage = () => {
           </button>
         </div>
       </div>
-      {/* 에러 메시지 표시 영역 */}
-      {error && (
-        <div className="absolute top-5 rounded-lg bg-red-200 p-3 text-red-800">
-          {error}
-        </div>
-      )}
     </div>
   );
 };
